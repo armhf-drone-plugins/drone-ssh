@@ -1,0 +1,46 @@
+clone:
+  path: github.com/drone-plugins
+  recursive: true
+
+build:
+  image: armhfbuild/golang:1.5
+  environment:
+    - GO15VENDOREXPERIMENT=1
+    - GOOS=linux
+    - GOARCH=arm
+    - CGO_ENABLED=0
+  commands:
+    - git clone --single-branch https://github.com/drone-plugins/drone-ssh
+    - cd drone-ssh
+    - sed -i 's/FROM gliderlabs\/alpine/FROM armhfbuild\/alpine/' Dockerfile
+    - go get
+    - go build
+    - go test
+
+publish:
+  docker:
+    context: drone-ssh
+    file: drone-ssh/Dockerfile
+    username: $$DOCKER_USER
+    email: $$DOCKER_EMAIL
+    password: $$DOCKER_PASSWORD
+    repo: armhfplugins/drone-ssh
+    storage_driver: overlay
+    when:
+      repo: armhf-drone-plugins/drone-ssh
+      branch: master
+
+notify:
+  slack:
+    webhook_url: $$SLACK_WEBHOOK_URL
+    channel: armhf
+
+
+plugin:
+  name: SSH
+  desc: Use SSH to execute commands on a remote host
+  type: deploy
+  image: armhfplugins/drone-ssh
+  labels:
+    - deploy
+    - ssh
